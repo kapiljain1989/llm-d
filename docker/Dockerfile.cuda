@@ -263,7 +263,7 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 # ============================================================================
 # RUNTIME STAGE - Minimal runtime image
 # ============================================================================
-FROM nvcr.io/nvidia/cuda:${CUDA_MAJOR}.${CUDA_MINOR}.${CUDA_PATCH}-devel-${FINAL_BASE_IMAGE_SUFFIX} AS runtime
+FROM nvcr.io/nvidia/cuda:${CUDA_MAJOR}.${CUDA_MINOR}.${CUDA_PATCH}-runtime-${FINAL_BASE_IMAGE_SUFFIX} AS runtime
 
 ARG CACHE_BUSTER
 RUN if [ -n "${CACHE_BUSTER}" ]; then \
@@ -447,6 +447,11 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 # Cleanup packages
 COPY docker/scripts/cuda/common/package-utils.sh /tmp/package-utils.sh
 RUN bash -c ". /tmp/package-utils.sh && \
+    if [ \"\${TARGETOS:-rhel}\" = \"ubuntu\" ]; then \
+        apt-get purge -y git; \
+    else \
+        dnf remove -y git; \
+    fi && \
     autoremove_packages \${TARGETOS} && \
     cleanup_packages \${TARGETOS} && \
     rm /tmp/package-utils.sh"
