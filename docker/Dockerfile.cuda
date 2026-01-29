@@ -1,5 +1,5 @@
 ARG CUDA_MAJOR=12
-ARG CUDA_MINOR=9
+ARG CUDA_MINOR=8
 ARG CUDA_PATCH=1
 ARG TARGETOS=rhel
 ARG BASE_IMAGE_SUFFIX=ubi9
@@ -15,7 +15,7 @@ ARG FINAL_BASE_IMAGE_SUFFIX=${BASE_IMAGE_SUFFIX}
 ######################## SYSTEM CONFIGURATION ########################
 
 ARG CUDA_MAJOR=12
-ARG CUDA_MINOR=9
+ARG CUDA_MINOR=8
 ARG CUDA_PATCH=1
 ARG TARGETOS=rhel
 ARG TARGETPLATFORM=linux/amd64
@@ -63,10 +63,11 @@ ARG FLASHINFER_REPO="https://github.com/flashinfer-ai/flashinfer.git"
 ARG FLASHINFER_VERSION="v0.5.3"
 
 # vLLM build settings
-ARG VLLM_REPO="https://github.com/vllm-project/vllm.git"
-ARG VLLM_COMMIT_SHA="d7de043d55d1dd629554467e23874097e1c48993"
-ARG VLLM_PRECOMPILED_WHEEL_COMMIT="d7de043d55d1dd629554467e23874097e1c48993"
-ARG VLLM_PREBUILT=0
+# Commit on feature branch in my repo.
+ARG VLLM_REPO="https://github.com/jtechapps/vllm-1.git"
+ARG VLLM_COMMIT_SHA="279e534f57bf77e4a35ecb2908a6adf7c382e00f"
+ARG VLLM_PRECOMPILED_WHEEL_COMMIT="72506c98349d6bcd32b4e33eec7b5513453c1502"
+ARG VLLM_PREBUILT=1
 ARG VLLM_USE_PRECOMPILED=1
 
 # ============================================================================
@@ -333,7 +334,7 @@ ${LD_LIBRARY_PATH}" \
     CUDA_MINOR=${CUDA_MINOR}
 
 # LD_LIBRARY_PATH needs the torch path to apply proper linkers so as not to produce torch ABI missmatch
-ENV LD_LIBRARY_PATH="/opt/vllm/lib64/python${PYTHON_VERSION}/site-packages/torch/lib:/usr/local/nvidia/lib:/usr/local/nvidia/lib64:/usr/local/cuda/lib64:/usr/local/lib:/usr/local/lib64:${NVSHMEM_DIR}/lib:${LD_LIBRARY_PATH}"
+ENV LD_LIBRARY_PATH="/opt/vllm/lib64/python${PYTHON_VERSION}/site-packages/torch/lib:/usr/local/nvidia/lib:/usr/local/cuda/lib64/stubs:/usr/local/nvidia/lib64:/usr/local/cuda/lib64:/usr/local/lib:/usr/local/lib64:${NVSHMEM_DIR}/lib:${LD_LIBRARY_PATH}"
 
 # Install runtime dependencies
 COPY docker/scripts/cuda/common/package-utils.sh /tmp/package-utils.sh
