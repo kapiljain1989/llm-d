@@ -14,6 +14,8 @@
     "tar": "tar",
     "gcc": "gcc",
     "gcc-c++": "g++",
+    "hwloc": "hwloc",
+    "hwloc-devel": "libhwloc-dev",
     "make": "make",
     "autoconf": "autoconf",
     "automake": "automake",
@@ -36,6 +38,7 @@
     "pciutils-libs": null,
     "ninja-build": "ninja-build",
     "xz": "xz-utils",
+    "libaio-devel": "libaio-dev",
     "rsync": "rsync"
   },
   "ubuntu_only": [

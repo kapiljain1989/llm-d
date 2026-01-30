@@ -29,6 +29,7 @@ if [ "$TARGETOS" = "ubuntu" ]; then
 elif [ "$TARGETOS" = "rhel" ]; then
     dnf -q update -y
     dnf -q install -y jq
+    install_local_rpms
 fi
 
 # main installation logic
