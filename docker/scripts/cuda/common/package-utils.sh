@@ -5,32 +5,58 @@
 # - CUDA_MAJOR: CUDA major version (e.g., 12)
 # - CUDA_MINOR: CUDA minor version (e.g., 9)
 # - PYTHON_VERSION: Python version (e.g., 3.12)
-# Optional docker secret mounts:
-# - /run/secrets/subman_org: Subscription Manager Organization - used if on a ubi based image for entitlement
-# - /run/secrets/subman_activation_key: Subscription Manager Activation key - used if on a ubi based image for entitlement
+# - TARGETPLATFORM: Target platform (e.g., linux/amd64, linux/arm64) - used for local RPM installation
+# Note: Using local CentOS 9 Stream RPMs instead of RHEL subscription for required packages
 
 # Assumes rhel check in consuming script
+# Note: Using local CentOS RPMs instead of RHEL subscription
 ensure_registered() {
-  install -d -m0755 /etc/pki/consumer /etc/pki/entitlement /etc/rhsm
-  subscription-manager clean || true
-  if [ ! -f /etc/pki/consumer/cert.pem ]; then
-    test -f /run/secrets/subman_org && test -f /run/secrets/subman_activation_key
-    subscription-manager register \
-      --org "$(cat /run/secrets/subman_org)" \
-      --activationkey "$(cat /run/secrets/subman_activation_key)" \
-      --force
-    subscription-manager refresh || true
-  fi
+  echo "Skipping RHEL registration - using local CentOS RPMs"
 }
 
 # Assumes rhel check in consuming script
 ensure_unregistered() {
-  echo "beginning un-registration process"
-  if [ -f /etc/pki/consumer/cert.pem ]; then
-    subscription-manager unregister || true
-  fi
-  subscription-manager clean || true
-  rm -rf /etc/pki/entitlement/* /etc/pki/consumer/* /etc/rhsm/* /var/cache/dnf/* || true
+  echo "Skipping RHEL unregistration - using local CentOS RPMs"
+  rm -rf /var/cache/dnf/* || true
+}
+
+# Install local RPMs from /tmp/packages/rpms directory
+# Maps TARGETPLATFORM to rpm arch directory
+install_local_rpms() {
+    local targetplatform="${TARGETPLATFORM:-linux/amd64}"
+    local rpm_arch
+    
+    case "$targetplatform" in
+        linux/amd64)
+            rpm_arch="amd64"
+            ;;
+        linux/arm64)
+            rpm_arch="arm64"
+            ;;
+        *)
+            echo "ERROR: Unsupported TARGETPLATFORM: $targetplatform" >&2
+            exit 1
+            ;;
+    esac
+    
+    local rpm_dir="/tmp/packages/rpms/${rpm_arch}"
+    
+    if [ ! -d "$rpm_dir" ]; then
+        echo "WARNING: RPM directory not found: $rpm_dir" >&2
+        return 0
+    fi
+    
+    local rpm_count
+    rpm_count=$(find "$rpm_dir" -name "*.rpm" 2>/dev/null | wc -l)
+    
+    if [ "$rpm_count" -eq 0 ]; then
+        echo "No RPMs found in $rpm_dir"
+        return 0
+    fi
+    
+    echo "Installing local RPMs from $rpm_dir"
+    # Use dnf localinstall to handle dependencies
+    dnf -q install -y "$rpm_dir"/*.rpm
 }
 
 # detect architecture for repo URLs

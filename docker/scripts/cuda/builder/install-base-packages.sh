@@ -29,7 +29,6 @@ if [ "$TARGETOS" = "ubuntu" ]; then
 elif [ "$TARGETOS" = "rhel" ]; then
     dnf -q update -y
     dnf -q install -y jq
-    ensure_registered
 fi
 
 # main installation logic

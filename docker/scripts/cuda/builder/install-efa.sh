@@ -3,9 +3,7 @@ set -Eeu
 
 # purpose: Install EFA
 # -------------------------------
-# Required docker secret mounts:
-# - /run/secrets/subman_org: Subscription Manager Organization - used if on a ubi based image for entitlement
-# - /run/secrets/subman_activation_key: Subscription Manager Activation key - used if on a ubi based image for entitlement
+# Note: Using local CentOS 9 Stream RPMs instead of RHEL subscription
 # -------------------------------
 # Required environment variables:
 # - TARGETOS: Target OS - either 'ubuntu' or 'rhel' (default: rhel)
@@ -65,4 +63,3 @@ for efalib in libefa libibverbs librdmacm; do
 done
 
 cleanup_packages rhel
-ensure_unregistered

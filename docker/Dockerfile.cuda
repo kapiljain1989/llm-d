@@ -67,6 +67,41 @@ ARG VLLM_PREBUILT=0
 ARG VLLM_USE_PRECOMPILED=1
 
 # ============================================================================
+# EFA BUILDER STAGE - Build EFA on CentOS Stream 9 (no RHEL subscription needed)
+# ============================================================================
+FROM quay.io/centos/centos:stream9 AS efa-builder
+
+ARG EFA_INSTALLER_VERSION
+
+ENV EFA_PREFIX="/opt/amazon/efa"
+
+# Install util-linux for getopt (needed by EFA installer script)
+# Note: curl-minimal, tar, and gzip are already in the base image
+RUN dnf -y install util-linux && \
+    dnf clean all
+
+# Download and install AWS EFA
+# Patch common.sh to make is_rhel_9() return true (CentOS Stream 9 is RHEL 9 compatible)
+RUN mkdir -p /tmp/efa /etc/ld.so.conf.d/ && \
+    curl -fsSL "https://efa-installer.amazonaws.com/aws-efa-installer-${EFA_INSTALLER_VERSION}.tar.gz" \
+         -o /tmp/efa/aws-efa-installer.tar.gz && \
+    tar -xzf /tmp/efa/aws-efa-installer.tar.gz -C /tmp/efa && \
+    cd /tmp/efa/aws-efa-installer && \
+    # Override is_rhel_9() to always return true (0) since CentOS Stream 9 is binary compatible with RHEL 9 \
+    sed -i '/^is_rhel_9() {/,/^}/c\is_rhel_9() { return 0; }' common.sh && \
+    ./efa_installer.sh --skip-kmod --no-verify -y && \
+    ldconfig && \
+    rm -rf /tmp/efa
+
+# Copy EFA libraries to staging area for next stage
+RUN mkdir -p /tmp/efa_libs && \
+    for efalib in libefa libibverbs librdmacm; do \
+        if ls /lib64/${efalib}.so* >/dev/null 2>&1; then \
+            cp -a /lib64/${efalib}.so* /tmp/efa_libs/ || true; \
+        fi; \
+    done
+
+# ============================================================================
 # BUILD STAGE - Install build dependencies and create wheels
 # ============================================================================
 FROM nvcr.io/nvidia/cuda:${CUDA_MAJOR}.${CUDA_MINOR}.${CUDA_PATCH}-devel-${BUILD_BASE_IMAGE_SUFFIX} AS builder
@@ -114,9 +149,7 @@ ENV LANG="C.UTF-8" \
 COPY docker/scripts/cuda/common/package-utils.sh /tmp/package-utils.sh
 COPY docker/packages /tmp/packages
 COPY docker/scripts/cuda/builder/install-base-packages.sh /tmp/install-base-packages.sh
-RUN --mount=type=secret,id=subman_org \
-    --mount=type=secret,id=subman_activation_key \
-    TARGETOS=${TARGETOS} /tmp/install-base-packages.sh && \
+RUN TARGETOS=${TARGETOS} TARGETPLATFORM=${TARGETPLATFORM} /tmp/install-base-packages.sh && \
     rm -f /tmp/install-base-packages.sh /tmp/package-utils.sh && \
     rm -rf /tmp/packages
 
@@ -166,16 +199,13 @@ ${EFA_PREFIX}/lib/pkgconfig:${EFA_PREFIX}/lib64/pkgconfig:\
 /usr/share/pkgconfig:\
 ${PKG_CONFIG_PATH}"
 
-# Install EFA
-ARG EFA_INSTALLER_VERSION
-COPY docker/scripts/cuda/common/package-utils.sh /tmp/package-utils.sh
-COPY docker/scripts/cuda/builder/install-efa.sh /tmp/install-efa.sh
-RUN --mount=type=secret,id=subman_org \
-    --mount=type=secret,id=subman_activation_key \
-    TARGETOS=${TARGETOS} \
-    EFA_INSTALLER_VERSION=${EFA_INSTALLER_VERSION} \
-    /tmp/install-efa.sh && \
-    rm -f /tmp/install-efa.sh /tmp/package-utils.sh
+# Copy EFA from efa-builder stage (built on CentOS Stream 9)
+COPY --from=efa-builder /opt/amazon/efa /opt/amazon/efa/
+COPY --from=efa-builder /tmp/efa_libs /tmp/efa_libs
+RUN if [ "${TARGETOS:-rhel}" = "rhel" ] && [ -d /tmp/efa_libs ]; then \
+        cp -a /tmp/efa_libs/* /usr/lib64/ || true; \
+    fi && \
+    rm -rf /tmp/efa_libs
 
 # Build and install gdrcopy
 ARG GDRCOPY_REPO
@@ -333,14 +363,14 @@ ENV LD_LIBRARY_PATH="/opt/vllm/lib64/python${PYTHON_VERSION}/site-packages/torch
 COPY docker/scripts/cuda/common/package-utils.sh /tmp/package-utils.sh
 COPY docker/packages /tmp/packages
 COPY docker/scripts/cuda/runtime/install-runtime-packages.sh /tmp/install-runtime-packages.sh
-RUN TARGETOS=${TARGETOS} /tmp/install-runtime-packages.sh && \
+RUN TARGETOS=${TARGETOS} TARGETPLATFORM=${TARGETPLATFORM} /tmp/install-runtime-packages.sh && \
     rm -f /tmp/install-runtime-packages.sh /tmp/package-utils.sh && \
     rm -rf /tmp/packages
 
-# Copy in efa
+# Copy in efa (originally built in efa-builder stage on CentOS Stream 9)
 COPY --from=builder /opt/amazon/efa /opt/amazon/efa/
 
-# Copy efa libs from builder (install-efa.sh)
+# Copy efa libs from builder
 # Ubuntu does not build EFA
 COPY --from=builder /tmp/efa_libs /tmp/efa_libs
 RUN if [ "${TARGETOS:-rhel}" = "rhel" ] && [ -d /tmp/efa_libs ]; then \
