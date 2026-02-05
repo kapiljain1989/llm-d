@@ -34,7 +34,7 @@ ARG GDRCOPY_REPO="https://github.com/NVIDIA/gdrcopy.git"
 ARG GDRCOPY_VERSION="v2.5.1"
 
 ARG UCX_REPO="https://github.com/openucx/ucx.git"
-ARG UCX_VERSION="1.20.0"
+ARG UCX_VERSION="v1.20.0"
 
 ARG NVSHMEM_USE_GIT="true"
 ARG NVSHMEM_REPO="https://github.com/NVIDIA/nvshmem.git"
