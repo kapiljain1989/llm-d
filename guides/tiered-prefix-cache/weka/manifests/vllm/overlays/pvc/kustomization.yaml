@@ -5,6 +5,17 @@ namespace: weka
 
 resources:
   - serviceAccount.yaml
-  - pvc.yaml
-  - decode
-  - prefill
+  - ../decode
+  - ../prefill
+
+patches:
+  # Patch weka-storage volume to use PVC for both decode and prefill
+  - target:
+      kind: Deployment
+    patch: |-
+      - op: replace
+        path: /spec/template/spec/volumes/1
+        value:
+          name: weka-storage
+          persistentVolumeClaim:
+            claimName: wekafs-amg

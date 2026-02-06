@@ -65,38 +65,59 @@ Choose either PVC or host-path storage based on your WEKA setup.
 
 #### Option 1: PVC Storage (Recommended)
 
-1. Update the StorageClass in `./manifests/vllm/overlays/pvc/pvc.yaml`:
+##### 1. Configure WEKA StorageClass
 
-   ```yaml
-   storageClassName: SOME_STORAGE_CLASS_NAME  # Replace with your WEKA CSI StorageClass name (e.g., weka-csi-sc)
-   ```
+Configure and deploy the WEKA CSI StorageClass following the [WEKA backend guide](../storage/manifests/backends/weka/README.md).
 
-2. Deploy both decode and prefill with PVC storage:
+Set your storage class name for use in the next step:
+
+```bash
+export STORAGE_CLASS=weka-csi-sc
+```
+
+##### 2. Create the PVC
+
+Create a PersistentVolumeClaim named `wekafs-amg` with 100Gi storage using the storage guide's PVC template:
+
+```bash
+envsubst < ../storage/manifests/pvc.yaml | \
+  sed -e 's/llm-d-kv-cache-storage/wekafs-amg/' \
+      -e 's/18000Gi/100Gi/' | \
+  kubectl apply -f - -n ${NAMESPACE}
+```
+
+##### 3. Deploy both decode and prefill with PVC storage
 
    ```bash
    kubectl apply -k ./manifests/vllm/overlays/pvc
    ```
 
    This creates:
-   - ServiceAccount: `weka-vllm`
-   - PersistentVolumeClaim: `wekafs-amg`
-   - Deployment `decode`:
-     - 1 replica with 4 GPUs (tensor-parallel), 16 CPUs, port 8200
-     - InitContainers: `routing-proxy`, `create-cufile-on-node` (amg-utils)
-   - Deployment `prefill`:
-     - 4 replicas, each with 1 GPU, 8 CPUs, port 8000
-     - InitContainers: `create-cufile-on-node` (amg-utils)
+
+- ServiceAccount: `weka-vllm`
+- Deployment `decode`:
+  - 1 replica with 4 GPUs (tensor-parallel), 16 CPUs, port 8200
+  - InitContainers: `routing-proxy`, `create-cufile-on-node` (amg-utils)
+- Deployment `prefill`:
+  - 4 replicas, each with 1 GPU, 8 CPUs, port 8000
+  - InitContainers: `create-cufile-on-node` (amg-utils)
 
 #### Option 2: Host-Path Storage
 
-1. If WEKA is mounted at a different location than `/mnt/weka`, update the `path` in:
-   - `./manifests/vllm/overlays/host/decode/kustomization.yaml`
-   - `./manifests/vllm/overlays/host/prefill/kustomization.yaml`
+1. If WEKA is mounted at a different location than `/mnt/weka`, update the `path` in `./manifests/vllm/overlays/host/kustomization.yaml`:
 
    ```yaml
-   hostPath:
-     path: /mnt/weka  # Replace with your WEKA mount path
-     type: Directory
+   patches:
+     - target:
+         kind: Deployment
+       patch: |-
+         - op: replace
+           path: /spec/template/spec/volumes/1
+           value:
+             name: weka-storage
+             hostPath:
+               path: /mnt/weka  # Replace with your WEKA mount path
+               type: Directory
    ```
 
 2. Deploy both decode and prefill with host-path storage
@@ -122,7 +143,7 @@ Deploy the InferencePool and inference scheduler:
 helm install weka-vllm \
     -n ${NAMESPACE} \
     -f ./manifests/inferencepool.values.yaml \
-    oci://registry.k8s.io/gateway-api-inference-extension/charts/inferencepool --version v1.2.0
+    oci://registry.k8s.io/gateway-api-inference-extension/charts/inferencepool --version v1.3.0
 ```
 
 This creates:

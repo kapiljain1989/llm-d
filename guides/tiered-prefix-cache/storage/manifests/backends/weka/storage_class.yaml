@@ -1,0 +1,12 @@
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: weka-csi-sc
+parameters:
+  capacityEnforcement: HARD
+  filesystemName: default
+  volumeType: dir/v1
+  mountOptions: "rw,relatime,readcache,noatime,readahead_kb=32768,dentry_max_age_positive=1000,dentry_max_age_negative=0"
+provisioner: csi.weka.io
+reclaimPolicy: Delete
+volumeBindingMode: WaitForFirstConsumer

@@ -5,5 +5,18 @@ namespace: weka
 
 resources:
   - serviceAccount.yaml
-  - decode
-  - prefill
+  - ../decode
+  - ../prefill
+
+patches:
+  # Patch weka-storage volume to use hostPath for both decode and prefill
+  - target:
+      kind: Deployment
+    patch: |-
+      - op: replace
+        path: /spec/template/spec/volumes/1
+        value:
+          name: weka-storage
+          hostPath:
+            path: /mnt/weka
+            type: Directory

@@ -1,7 +1,7 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
-  - ../weka-base
+  - ../../base
 
 patches:
   # Apply strategic merge patch for decode configuration
@@ -16,7 +16,7 @@ patches:
         path: /metadata/name
         value: decode
 
-  # Set ports to only 8200 for decode
+  # Set ports for decode: 8200 (vLLM API) and 5600 (nixl side channel)
   - target:
       kind: Deployment
       name: decode
@@ -26,4 +26,7 @@ patches:
         value:
           - containerPort: 8200
             name: metrics
+            protocol: TCP
+          - containerPort: 5600
+            name: nixl
             protocol: TCP
