@@ -53,7 +53,7 @@ ARG LMCACHE_VERSION="v0.3.13"
 ARG DEEPEP_REPO="https://github.com/smarterclayton/DeepEP"
 # ARG DEEPEP_VERSION="nic_pe_alignment"
 # Use clayton's pre-rebase commit head
-ARG DEEPEP_VERSION="c66b1463601af5d127027fb459517fb97adab30d" 
+ARG DEEPEP_VERSION="29d31c095796f3c8ece47ee9cdcc167051bbeed9" 
 
 ARG DEEPGEMM_REPO="https://github.com/deepseek-ai/DeepGEMM"
 ARG DEEPGEMM_VERSION="v2.1.0"
@@ -67,7 +67,7 @@ ARG FLASHINFER_VERSION="v0.5.3"
 ARG VLLM_REPO="https://github.com/jtechapps/vllm-1.git"
 ARG VLLM_COMMIT_SHA="a5c50cf4c47531d05cb2624570c22c28cd0a52be"
 ARG VLLM_PRECOMPILED_WHEEL_COMMIT="d7de043d55d1dd629554467e23874097e1c48993"
-ARG VLLM_PREBUILT=1
+ARG VLLM_PREBUILT=0
 ARG VLLM_USE_PRECOMPILED=1
 
 # ============================================================================
