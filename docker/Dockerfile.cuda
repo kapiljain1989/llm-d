@@ -52,8 +52,10 @@ ARG LMCACHE_REPO="https://github.com/LMCache/LMCache.git"
 ARG LMCACHE_VERSION="v0.3.13"
 
 # Kernels
-ARG DEEPEP_REPO="https://github.com/deepseek-ai/DeepEP"
-ARG DEEPEP_VERSION="92fe2deaec24bc92ebd9de276daa6ca9ed602ed4" 
+# ARG DEEPEP_REPO="https://github.com/deepseek-ai/DeepEP"
+# ARG DEEPEP_VERSION="92fe2deaec24bc92ebd9de276daa6ca9ed602ed4" 
+ARG DEEPEP_REPO="https://github.com/Gregory-Pereira/DeepEP"
+ARG DEEPEP_VERSION="fix/nvshmem-ibgda-multiple-definition" 
 
 ARG DEEPGEMM_REPO="https://github.com/deepseek-ai/DeepGEMM"
 ARG DEEPGEMM_VERSION="v2.1.0"
